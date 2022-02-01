@@ -142,4 +142,8 @@
 
     <!-- Whether OverScroller reports flings to the "flingboost" service -->
     <java-symbol type="bool" name="config_flingBoost" id="0x0111f002" />
+
+   <!-- App lock -->
+   <java-symbol type="string" name="unlock_application" />
+   <java-symbol type="array" name="config_appLockAllowedSystemApps" />
 </resources>
