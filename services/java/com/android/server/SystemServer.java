@@ -2871,6 +2871,8 @@ public final class SystemServer implements Dumpable {
             mSystemServiceManager.startService(CustomDeviceConfigService.class);
             t.traceEnd();
 
+            mSystemServiceManager.startService(HideAppListService.class);
+
             // LineageHardware
             t.traceBegin("StartLineageHardwareService");
             mSystemServiceManager.startService(LineageHardwareService.class);
