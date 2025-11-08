@@ -167,6 +167,10 @@ import java.util.function.Function;
 public class ApplicationPackageManager extends PackageManager {
     private static final String TAG = "ApplicationPackageManager";
     private static final boolean DEBUG_ICONS = false;
+    private static final String PACKAGE_PLAY_STORE = "com.android.vending";
+    private static final String PACKAGE_YOUTUBE = "com.google.android.youtube";
+    private static final String PACKAGE_YOUTUBE_MUSIC = "com.google.android.apps.youtube.music";
+    private static final String PROPERTY_MANAGED_STORE_UPDATES = "persist.sys.revan.mod";
 
     private static final int DEFAULT_EPHEMERAL_COOKIE_MAX_SIZE_BYTES = 16384; // 16KB
 
@@ -273,6 +277,9 @@ public class ApplicationPackageManager extends PackageManager {
     @Override
     public PackageInfo getPackageInfoAsUser(String packageName, PackageInfoFlags flags, int userId)
             throws NameNotFoundException {
+        if (shouldHideManagedPackage(packageName)) {
+            throw new NameNotFoundException(packageName);
+        }
         PackageInfo pi =
                 getPackageInfoAsUserCached(
                         packageName,
@@ -535,6 +542,9 @@ public class ApplicationPackageManager extends PackageManager {
     @Override
     public ApplicationInfo getApplicationInfoAsUser(String packageName, ApplicationInfoFlags flags,
             int userId) throws NameNotFoundException {
+        if (shouldHideManagedPackage(packageName)) {
+            throw new NameNotFoundException(packageName);
+        }
         ApplicationInfo ai = getApplicationInfoAsUserCached(
                         packageName,
                         updateFlagsForApplication(flags.getValue(), userId),
@@ -1204,6 +1214,19 @@ public class ApplicationPackageManager extends PackageManager {
         sGetPackagesForUidCache.invalidateCache();
     }
 
+    private boolean shouldHideManagedPackage(@Nullable String packageName) {
+        return shouldHideManagedPackages() && isManagedPackage(packageName);
+    }
+
+    private boolean shouldHideManagedPackages() {
+        return SystemProperties.getBoolean(PROPERTY_MANAGED_STORE_UPDATES, true)
+                && PACKAGE_PLAY_STORE.equals(mContext.getOpPackageName());
+    }
+
+    private static boolean isManagedPackage(@Nullable String packageName) {
+        return PACKAGE_YOUTUBE.equals(packageName) || PACKAGE_YOUTUBE_MUSIC.equals(packageName);
+    }
+
     @Override
     public String getNameForUid(int uid) {
         try {
@@ -1289,7 +1312,12 @@ public class ApplicationPackageManager extends PackageManager {
             if (parceledList == null) {
                 return Collections.emptyList();
             }
-            return parceledList.getList();
+
+            List<PackageInfo> res = parceledList.getList();
+            if (shouldHideManagedPackages()) {
+                res.removeIf(pi -> pi != null && isManagedPackage(pi.packageName));
+            }
+            return res;
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
@@ -1390,7 +1418,11 @@ public class ApplicationPackageManager extends PackageManager {
             if (parceledList == null) {
                 return Collections.emptyList();
             }
-            return parceledList.getList();
+            List<ApplicationInfo> res = parceledList.getList();
+            if (shouldHideManagedPackages()) {
+                res.removeIf(ai -> ai != null && isManagedPackage(ai.packageName));
+            }
+            return res;
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
